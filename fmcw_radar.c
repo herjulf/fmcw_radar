@@ -1,9 +1,9 @@
 /*
 
- tty_talker sends command on serial port and prints response on stdout
+ fmcw_radar based on sensd, and tty_talk
+ 
 
- Robert Olsson  <robert@herjulf.se>  most code taken from:
-
+ Robert Olsson  <robert@herjulf.se>  also code taken from:
 
  file is part of the minicom communications package,
  *		Copyright 1991-1995 Miquel van Smoorenburg.
@@ -39,13 +39,9 @@
 #include <sys/poll.h>
 #include "devtag-allinone.h"
 
-#define DEBUG 0
-#define THRESH 4
 #define NOB 134
 
-#define VERSION "1.8 110628"
-#define END_OF_FILE 26
-#define CTRLD  4
+#define VERSION "1.0 2020-02-03"
 #define P_LOCK "/var/lock"
 
 char lockfile[128]; /* UUCP lock file of terminal */
@@ -60,14 +56,18 @@ int ext_trigger = 0;
 
 void usage(void)
 {
-  printf("\ntty_talk version %s\n", VERSION);
+  printf("\nfmcw_radar version %s\n", VERSION);
   
-  printf("\ntty_talk sends query to terminal device and waits for it's response\n");
-  printf("A response is teminated with EOF (0x4)\n");
-  printf("tty_talk [-BAUDRATE] device command\n");
-  printf(" Valid baudrates 4800, 9600 (Default), 19200, 38400 bps\n");
-  printf("tty_talk can handle devtag\n");
+  printf("\nfmcw_radar parses fmcw radar dev on serial port\n");
+  printf("fmcw_radar [-BAUDRATE] [-d] [-thresh level] device command\n");
+  printf(" Valid baudrates 4800, 9600 (Default), 19200, 38400, 57600, 115200 bps\n");
+  printf(" -thresh level is noise filer 1-44\n");
+  printf(" fmcw_radar can handle devtag\n");
 
+  printf("\nExample 1: Simple\n  fmcw_radar  /dev/ttyUSB0\n");
+  printf("\nExample 2: Debug\n  fmcw_radar -d /dev/ttyUSB0\n");
+  printf("\nExample 3: Sensitive\n  fmcw_radar -thresh 4 /dev/ttyUSB0\n");
+  
   exit(-1);
 }
 
@@ -108,7 +108,7 @@ int lockfile_create(void)
   if ((fd = open(lockfile, O_WRONLY | O_CREAT | O_EXCL, 0666)) < 0) {
     return 0;
   } else {
-    snprintf(buf, sizeof(buf),  "%05d tty_talk %.20s\n", (int) getpid(), 
+    snprintf(buf, sizeof(buf),  "%05d fmcw_radar %.20s\n", (int) getpid(), 
 	     username);
 
     write(fd, buf, strlen(buf));
@@ -236,36 +236,60 @@ int main(int ac, char *av[])
 	double dist;
 	unsigned sweep_ok = 0, sweep_tot = 0;
 	int i;
+	int debug = 0;
+	int thresh = 5;
 	
        	if(ac == 1) 
 	  usage();
 
-	if (strcmp(av[1], "-4800") == 0) {
-		baud = B4800;
-		av++; ac--;
-	} else if (strcmp(av[1], "-9600") == 0) {
-		baud = B9600;
-		av++; ac--;
-	} else if (strcmp(av[1], "-19200") == 0) {
-		baud = B19200;
-		av++; ac--;
-	} else if (strcmp(av[1], "-38400") == 0) {
-		baud = B38400;
-		av++; ac--;
-	} else if (strcmp(av[1], "-57600") == 0) {
-		baud = B57600;
-		av++; ac--;
-	} else if (strcmp(av[1], "-115200") == 0) {
-		baud = B115200;
-		av++; ac--;
-	} else
-		baud = B115200;
-		baud = B57600;
-		
-	if(ac < 3) 
-	  usage();
+	for(i = 1; (i < ac) && (av[i][0] == '-'); i++)  {
+	    if (strcmp(av[i], "-300") == 0) 
+	      baud = B300;
 
-	strncpy(dial_tty, devtag_get(av[1]), sizeof(dial_tty));
+	    else if (strcmp(av[i], "-600") == 0) 
+	      baud = B600;
+
+	    else if (strcmp(av[i], "-1200") == 0) 
+	      baud = B1200;
+
+	    else if (strcmp(av[i], "-2400") == 0) 
+	      baud = B2400;
+
+	    else if (strcmp(av[i], "-4800") == 0) 
+	      baud = B4800;
+
+	    else if (strcmp(av[i], "-9600") == 0)
+	      baud = B9600;
+
+	    else if (strcmp(av[i], "-19200") == 0)
+	      baud = B19200;
+
+	    else if (strcmp(av[i], "-38400") == 0)
+	      baud = B38400;
+
+	    else if (strcmp(av[i], "-57600") == 0)
+	      baud = B57600;
+
+	    else if (strcmp(av[i], "-115200") == 0)
+	      baud = B115200;
+
+	    else if (strcmp(av[i], "-utime") == 0) 
+	      utime = 1;
+
+	    else if (strncmp(av[i], "-d", 2) == 0) {
+	      debug = 1;
+	    }
+	    else if (strncmp(av[i], "-thresh", 2) == 0) 
+	      thresh = atoi(av[++i]);
+	}
+
+	if(debug) {
+	  printf("thesh = %d\n", thresh);
+	}
+
+	baud = B57600;
+		
+	strncpy(dial_tty, devtag_get(av[i]), sizeof(dial_tty));
 
 	while (! get_lock()) {
 	    if(--retry == 0)
@@ -273,7 +297,7 @@ int main(int ac, char *av[])
 	    sleep(1);
 	}
 
-	if ((fd = open(devtag_get(av[1]), O_RDWR | O_NOCTTY | O_NONBLOCK)) < 0) {
+	if ((fd = open(devtag_get(av[i]), O_RDWR | O_NOCTTY | O_NONBLOCK)) < 0) {
 	  perror("bad terminal device, try another");
 	  exit(-1);
 	}
@@ -313,35 +337,43 @@ int main(int ac, char *av[])
 sync:	  
 	  for(i = 0; i < 3; i++) {
 	    res = read(fd, &RTT[i], 1);
-	    if(res != 1 || RTT[i] != 0xff)
+
+	    if(res != 1)  {
+	      my_wait(50);
+	      goto sync;
+	    }
+	  
+	    if(RTT[i] != 0xff)
 	      goto sync;
 	  }
 	  
 	  res = read(fd, &RTT[3], NOB-3);
 	  sweep_tot++;
-#if DEBUG
-	  for (int j = 0; j < NOB; j++){
-	    printf(" %-02X", RTT[j]);	    
+
+	  if(debug) {
+	    for (int j = 0; j < NOB; j++){
+	      printf(" %02X", RTT[j]);	    
+	    }
+	    printf("\n");
 	  }
-	  printf("\n");
-#endif
+
 	  if(res != (NOB-3)) {
-#if DEBUG
-	    printf("Wrong len=%d\n", res);
-#endif	    
-	    my_wait(700);
+
+	    if(debug) {
+	      printf("Wrong len=%d\n", res);
+	    }
+	    my_wait(100);
 	    goto sync;
 	  }
 
 	  if( RTT[NOB-1] || RTT[NOB-2] || RTT[NOB-3] ) {
-#if DEBUG
-	    printf("NOT NULL %02X \n", RTT[NOB-1]);
-#endif	    
-	    my_wait(700);
+	    if(debug) {
+	      printf("NOT NULL %02X \n", RTT[NOB-1]);
+	    }
+	    my_wait(100);
 	    goto sync;
 	  }
 
-	  
 	  /* Calc obstacle distance of maximum reflection intensity */
 	  YCTa = RTT[3];      
 	  YCTb = RTT[4];
@@ -349,19 +381,23 @@ sync:
 	  printf("D: %-5u ", YCT1);
 
 	  sweep_ok++;
-	  if (tcsetattr(fd, TCSAFLUSH, &tp) < 0) perror("can't set raw mode");
 
 	  for(int i = 6; i < 134; i++) {
-	    if(RTT[i] > THRESH) {
+	    if(RTT[i] > thresh) {
 	      dist = (i-6) * 12.6; /* Calculate distance */
 	      /* Output the obstacle distance */
 	      printf("%-3.0f_%-u ", dist, RTT[i]);
 	    }
 	  }
 	  printf("\n");
+	  fflush(stdout);
+
+	  if(debug) {
+	    printf("Sweep: ok=%-u, tot=%-u ratio=%-4.2f\n", sweep_ok, sweep_tot,
+		   (float) sweep_ok/(float) sweep_tot);
+	  }
 	} /* while(1) */
 	
-
 	if (tcsetattr(fd, TCSANOW, &old) < 0) {
 	  perror("Couldn't restore term attributes");
 	  exit(-1);
