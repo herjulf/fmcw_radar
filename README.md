@@ -1,5 +1,5 @@
-fmcw radar simple demo
-======================
+fmcw radar a simple demo
+========================
 
 Authors
 --------
@@ -13,14 +13,15 @@ Example
 	D: 214   202_13 315_44 592_10 706_10 
 	D: 214   202_14 315_44 592_10 706_10 
 
-Object with strongest refelection @ 214cm
-2:nd object @ 202cm with reflection index 10-14
-3:rd obejct @ 315cm with reflection index 44
-etc
+	Object with strongest refelection @ 214cm
+	2:nd object @ 202cm with reflection index 10-14
+	3:rd obejct @ 315cm with reflection index 44
+	etc
 
 HW support
 ----------
-DF Robot 24GHz RADAR. 
+DF Robot 24GHz RADAR.
+
 https://www.dfrobot.com/product-1882.html
 
 
@@ -53,5 +54,6 @@ FF FF FF 00 D3 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 0C 01 01 01 01
 Radar config
 ------------
 Pin 6 connected to GND, the output is distance + spectral data.
-BUAD rate 57600 bps
+
+BAUD rate 57600 bps
 

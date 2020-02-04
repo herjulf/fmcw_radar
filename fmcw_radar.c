@@ -2,7 +2,7 @@
 
  fmcw_radar based on sensd, and tty_talk
  
-
+ GPL copyright.
  Robert Olsson  <robert@herjulf.se>  also code taken from:
 
  file is part of the minicom communications package,
@@ -17,7 +17,6 @@
 
  * Based on.... serial port tester
  * Doug Hughes - Auburn University College of Engineering
- * 9600 baud by default, settable via -19200 or -9600 flags
  * first non-baud argument is tty (e.g. /dev/term/a)
  * second argument is file name (e.g. /etc/hosts)
  */
@@ -60,7 +59,7 @@ void usage(void)
   
   printf("\nfmcw_radar parses fmcw radar dev on serial port\n");
   printf("fmcw_radar [-BAUDRATE] [-d] [-thresh level] device command\n");
-  printf(" Valid baudrates 4800, 9600 (Default), 19200, 38400, 57600, 115200 bps\n");
+  printf(" Valid baudrates 4800, 9600, 19200, 38400, 57600 (Default), 115200 bps\n");
   printf(" -thresh level is noise filer 1-44\n");
   printf(" fmcw_radar can handle devtag\n");
 
