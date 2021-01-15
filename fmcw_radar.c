@@ -377,11 +377,11 @@ sync:
 	  YCTa = RTT[3];      
 	  YCTb = RTT[4];
 	  YCT1 = (YCTa << 8) + YCTb;
-	  printf("D: %-5u ", YCT1);
+	  printf("D:  %-5u ", YCT1);
 
 	  sweep_ok++;
 
-	  for(int i = 6; i < 134; i++) {
+	  for(int i = 6; i < NOB-3; i++) {
 	    if(RTT[i] > thresh) {
 	      dist = (i-6) * 12.6; /* Calculate distance */
 	      /* Output the obstacle distance */
